@@ -8,26 +8,28 @@ import {
   EuiSpacer,
   EuiText,
   EuiTextColor,
-} from '@elastic/eui';
+} from "@elastic/eui";
+import logo from "../assets/logo.png";
+import animation from "../assets/animation.gif";
+
+import React from "react";
 import {
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithPopup,
-} from 'firebase/auth';
-import animation from '../assets/animation.gif';
-import logo from '../assets/logo.png';
-import { firebaseAuth, userRef } from '../utils/FirebaseConfig';
-import { addDoc, getDocs, query, where } from 'firebase/firestore';
-import { useNavigate } from 'react-router-dom';
-import { useAppDispatch } from '../app/hooks';
-import { setUser } from '../app/slices/AuthSlice';
+} from "firebase/auth";
+import { firebaseAuth, firebaseDB, usersRef } from "../utils/firebaseConfig";
+import { useNavigate } from "react-router-dom";
+import { useAppDispatch } from "../app/hooks";
+import { setUser } from "../app/slices/AuthSlice";
+import { collection, query, where, addDoc, getDocs } from "firebase/firestore";
 
-const Login = () => {
+function Login() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
   onAuthStateChanged(firebaseAuth, (currentUser) => {
-    if (currentUser) navigate('/');
+    if (currentUser) navigate("/");
   });
 
   const login = async () => {
@@ -35,63 +37,46 @@ const Login = () => {
     const {
       user: { displayName, email, uid },
     } = await signInWithPopup(firebaseAuth, provider);
+
     if (email) {
-      const firestoreQuery = query(userRef, where('uid', '==', uid));
-      const fetchedUsers = await getDocs(firestoreQuery);
-      if (fetchedUsers.docs.length === 0) {
-        await addDoc(userRef, {
+      const firestoreQuery = query(usersRef, where("uid", "==", uid));
+      const fetchedUser = await getDocs(firestoreQuery);
+      if (fetchedUser.docs.length === 0) {
+        await addDoc(collection(firebaseDB, "users"), {
           uid,
           name: displayName,
           email,
         });
       }
+      dispatch(setUser({ uid, email: email!, name: displayName! }));
+      navigate("/");
     }
-    dispatch(setUser({ uid, name: displayName, email }));
-    navigate('/');
   };
-
   return (
     <EuiProvider colorMode="dark">
       <EuiFlexGroup
-        alignItems="center"
         justifyContent="center"
-        style={{ width: '100vw', height: '100vh' }}
+        alignItems="center"
+        style={{ width: "100vw", height: "100vh" }}
       >
         <EuiFlexItem grow={false}>
           <EuiPanel paddingSize="xl">
-            <EuiFlexGroup
-              justifyContent="center"
-              alignItems="center"
-            >
+            <EuiFlexGroup justifyContent="center" alignItems="center">
               <EuiFlexItem>
-                <EuiImage
-                  src={animation}
-                  alt="logo"
-                />
+                <EuiImage src={animation} alt="logo" />
               </EuiFlexItem>
               <EuiFlexItem>
-                <EuiImage
-                  src={logo}
-                  alt="logo"
-                  size="230px"
-                />
+                <EuiImage src={logo} alt="logo" size="230px" />
                 <EuiSpacer size="xs" />
-                <EuiText
-                  textAlign="center"
-                  grow={false}
-                >
+                <EuiText textAlign="center" grow={false}>
                   <h3>
                     <EuiTextColor>One Platform to</EuiTextColor>
                     <EuiTextColor color="#0b5cff"> connect</EuiTextColor>
                   </h3>
                 </EuiText>
                 <EuiSpacer size="l" />
-                <EuiButton
-                  fill
-                  style={{ textDecoration: 'none' }}
-                  onClick={login}
-                >
-                  Login with google
+                <EuiButton fill onClick={login}>
+                  Login with Google
                 </EuiButton>
               </EuiFlexItem>
             </EuiFlexGroup>
@@ -100,6 +85,6 @@ const Login = () => {
       </EuiFlexGroup>
     </EuiProvider>
   );
-};
+}
 
 export default Login;
